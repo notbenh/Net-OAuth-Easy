@@ -41,8 +41,6 @@ has signature_key => (
    isa => 'SignatureKey',
 );
 
-
-
 sub timestamp {};
 sub nonce {};
      
