@@ -32,7 +32,18 @@ describe 'Net::OAuth::Easy' {
 
    before_each {
       require_ok( 'Net::OAuth::Easy' );
-      $oauth = Net::OAuth::East->new;
+      $oauth = Net::OAuth::Easy->new;
+   }
+
+   it 'will have a method nonce that will generate unique ids' {
+      ok( $oauth->can('nonce'), q{we have access to the method} );
+      ok( $oauth->nonce ne $oauth->nonce, q{two calls are not identical} );
+   }
+
+   it 'will have a single generic request method that all requsets will be run thru' {
+      ok( $oauth->can('generic_request'), q{there is a generic request method} );
+      #eq_or_diff( $oauth->generic_request( request_token => this => 'that', callback => 'here.com'), {},);
+
    }
       
 }
