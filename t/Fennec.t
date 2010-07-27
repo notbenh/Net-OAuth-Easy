@@ -17,7 +17,7 @@ use Fennec::Util::Alias qw/
     Collector => 'Files',
     ignore => undef,
     filetypes => [qw/ Module /],
-    default_asserts => [qw/Core Wrapper::Structure/],
+    default_asserts => [qw/Core Wrapper::Structure Wrapper::Differences/],
     default_workflows => [qw/Spec Case Methods/],
 );
 
