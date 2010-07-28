@@ -61,9 +61,7 @@ has signature_key => (
 );
 
 sub timestamp { time };
-sub nonce {
-  md5_hex( join '', rand(2**32), time, rand(2**32) ); 
-};
+sub nonce { md5_hex( join '', rand(2**32), time, rand(2**32) ); };
 
 has request_parameters => (
    is => 'rw',
@@ -93,6 +91,7 @@ sub build_generic_request {
    # pull any overrides from %opts/@_ everything else is pulled from $self
    my %req  = map{ $_ => ( exists $opts{$_} ) ? delete $opts{$_} : $self->$_
                  } $self->request_parameters;
+   # TODO: this is likely not what we really want in cases where you pass Content, NOS builds the URL and then plucks from that, possibly more accurate?
    $req{extra_params} = \%opts if scalar(keys %opts); # save off anything left from @_ as extra params
 
    $req{protocol_version} = ($self->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0 ;
@@ -120,6 +119,10 @@ sub success {
    return ( $self->has_response ) ? $self->response->is_success : 0;
 }
 sub failure { ! shift->success };
+sub error{ 
+   my $self = shift;
+   return ($self->failure) ? join qq{\n}, map{$self->response->$_} qw{status_line content} : undef;
+}
 
 sub make_request {
    my $self    = shift;
@@ -128,30 +131,37 @@ sub make_request {
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
    $req->authorization( $request->to_authorization_header );
-   
+   return $req;
+}
+
+sub send_request {
+   my $self = shift;
+   my $req = ( ref($_[0]) && $_[0]->isa('HTTP::Request') ) ? $_[0] : $self->make_request(@_);
    $self->response( $self->ua->request( $req ) );
 }
-   
 
+has $_ => (
+   is => 'rw',
+   isa => 'Str',
+   predicate => qq{has_$_},
+   clearer => qq{clear_$_},
+) for qw{request_token request_token_secret access_token access_token_secret};
 
-sub request_token {
+sub get_request_token {
    my $self = shift;
-   
-=pod
-   o
-       my $res = $ua->request(POST $request->to_url); # Post message to the Service Provider
-
-    if ($res->is_success) {
-        my $response = Net::OAuth->response('request token')->from_post_body($res->content);
-        print "Got Request Token ", $response->token, "\n";
-        print "Got Request Token Secret ", $response->token_secret, "\n";
-    }
-    else {
-        die "Something went wrong";
-    }
-=cut
-
+   $self->send_request(request_token => @_);
+   if ($self->success) {
+      my $resp = Net::OAuth->response('request token')->from_post_body($self->response->content);
+      $self->request_token( $resp->token );
+      $self->request_token_secret( $resp->token_secret );
+   }
+   return $self->success;
 }
+   
+sub get_authorization_url {}
+sub get_access_token {}
+
+
 
 
 

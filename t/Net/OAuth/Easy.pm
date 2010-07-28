@@ -33,11 +33,13 @@ describe 'Net::OAuth::Easy' {
    before_each {
       require_ok( 'Net::OAuth::Easy' );
       $oauth = Net::OAuth::Easy->new(
-         consumer_key        => 'googlecodesamples.com',
-         consumer_secret     => 'turkey',
-         request_token_url   => q{https://www.google.com/accounts/OAuthGetRequestToken},
-         authorize_token_url => q{https://www.google.com/accounts/OAuthAuthorizeToken},
-         access_token_url    => q{https://www.google.com/accounts/OAuthGetAccessToken},
+         # Thankyou to http://term.ie/oauth/example/ for the sandbox for testing
+         consumer_key        => 'key',
+         consumer_secret     => 'secret',
+         request_token_url   => q{http://term.ie/oauth/example/request_token.php},
+         authorize_token_url => q{http://term.ie/oauth/example/access_token.php},
+         access_token_url    => q{http://term.ie/oauth/example/echo_api.php},
+         callback            => q{http://here.com},
       );
    }
 
@@ -48,12 +50,18 @@ describe 'Net::OAuth::Easy' {
 
    it 'will have a single generic request method that all requsets will be run thru' {
       ok( $oauth->can('build_generic_request'), q{there is a generic request method} );
-      ok( my $req = $oauth->build_generic_request( request_token => callback => 'here.com') ); 
-      is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest});
-      ok( $oauth->make_request( $req ) );
-      ok( $oauth->make_request( request_token => callback => 'here.com' ) );
+      ok( my $req = $oauth->build_generic_request('request_token'), q{able to build $req} ); 
+      is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest}, q{$req is the right type});
+      ok( $oauth->make_request( $req ) , q{able to make request directly with $req} );
+      ok( $oauth->make_request( 'request_token' ), q{able to make request with params} );
+      
+      ok( $oauth->get_request_token, q{able to collect a request token} );
 
-      #eq_or_diff( $oauth->response, {} );
+      ok( $oauth->has_request_token, q{recieved request token} );
+      is( $oauth->request_token, 'requestkey', q{recieved correct request token} );
+      ok( $oauth->has_request_token_secret, q{recieved request token_secret} );
+      is( $oauth->request_token_secret, 'requestsecret', q{recieved correct request token_secret} );
+
 
    }
       
