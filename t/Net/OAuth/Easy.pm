@@ -32,7 +32,13 @@ describe 'Net::OAuth::Easy' {
 
    before_each {
       require_ok( 'Net::OAuth::Easy' );
-      $oauth = Net::OAuth::Easy->new;
+      $oauth = Net::OAuth::Easy->new(
+         consumer_key        => 'googlecodesamples.com',
+         consumer_secret     => 'turkey',
+         request_token_url   => q{https://www.google.com/accounts/OAuthGetRequestToken},
+         authorize_token_url => q{https://www.google.com/accounts/OAuthAuthorizeToken},
+         access_token_url    => q{https://www.google.com/accounts/OAuthGetAccessToken},
+      );
    }
 
    it 'will have a method nonce that will generate unique ids' {
@@ -41,8 +47,12 @@ describe 'Net::OAuth::Easy' {
    }
 
    it 'will have a single generic request method that all requsets will be run thru' {
-      ok( $oauth->can('generic_request'), q{there is a generic request method} );
-      #eq_or_diff( $oauth->generic_request( request_token => this => 'that', callback => 'here.com'), {},);
+      ok( $oauth->can('build_generic_request'), q{there is a generic request method} );
+
+      ok( my $req = $oauth->build_generic_request( request_token => callback => 'here.com') ); 
+      is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest});
+      ok( $oauth->make_request( $req ) );
+      ok( $oauth->make_request( request_token => callback => 'here.com' ) );
 
    }
       

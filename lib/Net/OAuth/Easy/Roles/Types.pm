@@ -2,6 +2,7 @@ package Net::OAuth::Easy::Roles::Types;
 use Moose::Role;
 use Moose::Util::TypeConstraints;
 use File::Slurp;
+use Data::Validate::URI qw(is_uri);
 
 enum 'OAuthProtocol' => qw(1.0 1.0a);
 
@@ -16,5 +17,6 @@ coerce SignatureKey =>
             Crypt::OpenSSL::RSA->new_private_key( join '', read_file($_) );
           };
 
+type ValidURI => as Str => where {is_uri($_)};
 
 
