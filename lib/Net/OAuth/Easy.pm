@@ -115,6 +115,12 @@ has response => (
    clearer => 'clear_response',
 );
 
+sub success {
+   my $self = shift;
+   return ( $self->has_response ) ? $self->response->is_success : 0;
+}
+sub failure { ! shift->success };
+
 sub make_request {
    my $self    = shift;
    $self->clear_response if $self->has_response;
@@ -130,6 +136,7 @@ sub make_request {
 
 sub request_token {
    my $self = shift;
+   
 =pod
    o
        my $res = $ua->request(POST $request->to_url); # Post message to the Service Provider

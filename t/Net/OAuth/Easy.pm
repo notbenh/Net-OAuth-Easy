@@ -48,11 +48,12 @@ describe 'Net::OAuth::Easy' {
 
    it 'will have a single generic request method that all requsets will be run thru' {
       ok( $oauth->can('build_generic_request'), q{there is a generic request method} );
-
       ok( my $req = $oauth->build_generic_request( request_token => callback => 'here.com') ); 
       is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest});
       ok( $oauth->make_request( $req ) );
       ok( $oauth->make_request( request_token => callback => 'here.com' ) );
+
+      #eq_or_diff( $oauth->response, {} );
 
    }
       
