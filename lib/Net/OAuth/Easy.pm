@@ -79,7 +79,7 @@ has request_parameters => (
    }]},
 );
 
-sub build_generic_request {
+sub build_request {
    my $self = shift;
    my $type = shift;
    my %opts = @_;
@@ -127,7 +127,7 @@ sub error{
 sub make_request {
    my $self    = shift;
    $self->clear_response if $self->has_response;
-   my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_generic_request(@_);
+   my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(@_);
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
    $req->authorization( $request->to_authorization_header );

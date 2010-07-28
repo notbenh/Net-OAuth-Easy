@@ -22,6 +22,19 @@ tests load {
 
       timestamp 
       nonce 
+
+      request_token 
+      request_token_secret 
+      access_token 
+      access_token_secret
+
+      build_request
+      make_request
+      send_request
+
+      get_request_token
+      get_authorization_url
+      get_access_token
    });
 }
 
@@ -49,8 +62,8 @@ describe 'Net::OAuth::Easy' {
    }
 
    it 'will have a single generic request method that all requsets will be run thru' {
-      ok( $oauth->can('build_generic_request'), q{there is a generic request method} );
-      ok( my $req = $oauth->build_generic_request('request_token'), q{able to build $req} ); 
+      ok( $oauth->can('build_request'), q{there is a generic request method} );
+      ok( my $req = $oauth->build_request('request_token'), q{able to build $req} ); 
       is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest}, q{$req is the right type});
       ok( $oauth->make_request( $req ) , q{able to make request directly with $req} );
       ok( $oauth->make_request( 'request_token' ), q{able to make request with params} );
