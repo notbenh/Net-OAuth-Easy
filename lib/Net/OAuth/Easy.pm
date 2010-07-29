@@ -76,6 +76,9 @@ has request_parameters => (
                        timestamp 
                        nonce 
                        callback 
+                       token
+                       token_secret
+                       verifier
    }]},
 );
 
@@ -89,7 +92,7 @@ sub build_request {
    $opts{request_url} ||= $self->$url_method;
 
    # pull any overrides from %opts/@_ everything else is pulled from $self
-   my %req  = map{ $_ => ( exists $opts{$_} ) ? delete $opts{$_} : $self->$_
+   my %req  = map{ $_ => ( exists $opts{$_} ) ? delete $opts{$_} : ( $self->can($_) ) ? $self->$_ : undef;
                  } $self->request_parameters;
    # TODO: this is likely not what we really want in cases where you pass Content, NOS builds the URL and then plucks from that, possibly more accurate?
    $req{extra_params} = \%opts if scalar(keys %opts); # save off anything left from @_ as extra params
@@ -159,7 +162,21 @@ sub get_request_token {
 }
    
 sub get_authorization_url {}
-sub get_access_token {}
+sub get_access_token {
+   my $self = shift;
+   my %opts = @_;
+   $opts{token} = ( exists $opts{request_token} ) ? delete $opts{request_token} : $self->request_token 
+      unless exists $opts{token};
+   $opts{token_secret} = ( exists $opts{request_token_secret} ) ? delete $opts{request_token_secret} : $self->request_token_secret 
+      unless exists $opts{token_secret};
+   $self->send_request(access_token => %opts);
+   if ($self->success) {
+      my $resp = Net::OAuth->response('access token')->from_post_body($self->response->content);
+      $self->access_token( $resp->token );
+      $self->access_token_secret( $resp->token_secret );
+   }
+   return $self->success;
+}
 
 
 

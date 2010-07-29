@@ -67,13 +67,25 @@ describe 'Net::OAuth::Easy' {
       is( ref( $req ), q{Net::OAuth::V1_0A::RequestTokenRequest}, q{$req is the right type});
       ok( $oauth->make_request( $req ) , q{able to make request directly with $req} );
       ok( $oauth->make_request( 'request_token' ), q{able to make request with params} );
+   }
+
+   it 'will be able to collect tokens and store them with in the object' {
       
-      ok( $oauth->get_request_token, q{able to collect a request token} );
+      ok( $oauth->get_request_token, q{able to collect a pair of request token} );
 
       ok( $oauth->has_request_token, q{recieved request token} );
       is( $oauth->request_token, 'requestkey', q{recieved correct request token} );
       ok( $oauth->has_request_token_secret, q{recieved request token_secret} );
       is( $oauth->request_token_secret, 'requestsecret', q{recieved correct request token_secret} );
+
+      ok( $oauth->get_access_token(verifier => 'kitten'), 
+          q{able to collect a pair of access tokens} 
+      );
+      
+      ok( $oauth->has_access_token, q{recieved access token} );
+      is( $oauth->access_token, 'accesskey', q{recieved correct access token} );
+      ok( $oauth->has_access_token_secret, q{recieved access token_secret} );
+      is( $oauth->access_token_secret, 'accesssecret', q{recieved correct access token_secret} );
 
 
    }
