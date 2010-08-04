@@ -2,6 +2,7 @@ package TEST::Net::OAuth::Easy;
 use strict;
 use warnings;
 use Fennec;
+use Test::WWW::Mechanize;
 
 tests load {
    require_ok( 'Net::OAuth::Easy' );
@@ -38,6 +39,9 @@ tests load {
    });
 }
 
+
+# !!!! CASE FOR BOTH RSA AND HMAC
+
    
 describe 'Net::OAuth::Easy' { 
 
@@ -46,19 +50,19 @@ describe 'Net::OAuth::Easy' {
    before_each {
       require_ok( 'Net::OAuth::Easy' );
       $oauth = Net::OAuth::Easy->new(
-         # Thankyou to http://term.ie/oauth/example/ for the sandbox for testing
-         consumer_key        => 'key',
-         consumer_secret     => 'secret',
-         request_token_url   => q{http://term.ie/oauth/example/request_token.php},
-         authorize_token_url => q{http://term.ie/oauth/example/access_token.php},
-         access_token_url    => q{http://term.ie/oauth/example/echo_api.php},
-         callback            => q{http://here.com},
+         # Thank you to http://oauth-sandbox.sevengoslings.net/ for providing a sandbox
+         consumer_key        => '99b23d82e268e527',
+         consumer_secret     => '08dfedff683f96b9a87401cf5d41',
+         request_token_url   => q{http://oauth-sandbox.sevengoslings.net/request_token},
+         authorize_token_url => q{http://oauth-sandbox.sevengoslings.net/authorize},
+         access_token_url    => q{http://oauth-sandbox.sevengoslings.net/access_token},
+         callback            => q{http://search.cpan.org/search?query=notbenh&mode=all},
       );
    }
 
    it 'will have a method nonce that will generate unique ids' {
       ok( $oauth->can('nonce'), q{we have access to the method} );
-      ok( $oauth->nonce ne $oauth->nonce, q{two calls are not identical} );
+      ok( $oauth->nonce ne $oauth->nonce, q{no two nonce calls are identical} );
    }
 
    it 'will have a single generic request method that all requsets will be run thru' {
@@ -69,25 +73,64 @@ describe 'Net::OAuth::Easy' {
       ok( $oauth->make_request( 'request_token' ), q{able to make request with params} );
    }
 
-   it 'will be able to collect tokens and store them with in the object' {
+   it 'will complete a simple workflow of getting OAuth tokens' {
       
       ok( $oauth->get_request_token, q{able to collect a pair of request token} );
 
       ok( $oauth->has_request_token, q{recieved request token} );
-      is( $oauth->request_token, 'requestkey', q{recieved correct request token} );
       ok( $oauth->has_request_token_secret, q{recieved request token_secret} );
-      is( $oauth->request_token_secret, 'requestsecret', q{recieved correct request token_secret} );
 
-      ok( $oauth->get_access_token(verifier => 'kitten'), 
+      ok( my $auth_url = $oauth->get_authorization_url, q{able to generate an auth url} );
+      like( $auth_url, qr{http://oauth-sandbox.sevengoslings.net/authorize}, q{auth url has the right base});
+      like( $auth_url, qr{oauth_token}, q{auth url includes token} );
+      like( $auth_url, qr{callback},    q{auth url includes callback} );
+
+      ok( my $mech = Test::WWW::Mechanize->new, q{built up a mech object for the web part of the tests});
+      $mech->get_ok( $auth_url );
+      $mech->content_contains( '<button id="need_login">Login</button>', q{need to log in} );
+
+      $mech->submit_form_ok( {form_name   => 'teh_form',
+                              with_fields => { username => 'notbenh',
+                                               kitten   => 'fox',
+                                             },
+                             }
+      );
+
+      $mech->content_contains( '<input type="submit" name="allow" value="Allow Access" />',
+                               q{need to accept connection}
+                             );
+      $mech->click_ok('allow');
+
+      ok( $oauth->get_access_token( $mech->uri ),
           q{able to collect a pair of access tokens} 
       );
       
       ok( $oauth->has_access_token, q{recieved access token} );
-      is( $oauth->access_token, 'accesskey', q{recieved correct access token} );
       ok( $oauth->has_access_token_secret, q{recieved access token_secret} );
-      is( $oauth->access_token_secret, 'accesssecret', q{recieved correct access token_secret} );
 
 
+      ok( $oauth->get_protected_resource('http://oauth-sandbox.sevengoslings.net/three_legged'),
+          q{able to make a request for a procted resource},
+      );
+      ok( $oauth->success, q{call was made successfuly} );
+      like( $oauth->content, qr/SUCCESS!/, q{content validates} );
+
+   }
+
+
+   after_all {
+      my $mech = Test::WWW::Mechanize->new;
+      $mech->get(q{http://oauth-sandbox.sevengoslings.net});
+      $mech->submit_form_ok( {form_name   => 'teh_form',
+                              with_fields => { username => 'notbenh',
+                                               kitten   => 'fox',
+                                             },
+                             }
+      );
+
+      while ( grep{defined $_->text && $_->text eq 'Revoke Access' } $mech->links ) {
+         $mech->follow_link( text => 'Revoke Access');
+      };
    }
       
 }

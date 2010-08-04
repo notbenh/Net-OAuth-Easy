@@ -19,4 +19,4 @@ coerce SignatureKey =>
 
 type ValidURI => as Str => where {is_uri($_)};
 
-
+1;

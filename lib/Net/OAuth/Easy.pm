@@ -25,7 +25,13 @@ has protocol => (
    isa => 'OAuthProtocol',
    lazy => 1,
    default => sub{'1.0a'},
+   trigger => sub{$Net::OAuth::PROTOCOL_VERSION = (shift->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;},
 );
+
+sub BUILD {
+   my $self = shift;
+   $Net::OAuth::PROTOCOL_VERSION = ($self->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;
+}
 
 has $_ => (
    is => 'rw',
@@ -89,7 +95,7 @@ sub build_request {
 
    # use type to grab the right url
    my $url_method = sprintf q{%s_url}, $type;
-   $opts{request_url} ||= $self->$url_method;
+   $opts{request_url} ||= $self->can($url_method) ? $self->$url_method : undef;
 
    # pull any overrides from %opts/@_ everything else is pulled from $self
    my %req  = map{ $_ => ( exists $opts{$_} ) ? delete $opts{$_} : ( $self->can($_) ) ? $self->$_ : undef;
@@ -116,6 +122,10 @@ has response => (
    predicate => 'has_response',
    clearer => 'clear_response',
 );
+sub content {
+   my $self = shift;
+   ( $self->has_response ) ? $self->response->content : undef;
+}
 
 sub success {
    my $self = shift;
@@ -161,14 +171,61 @@ sub get_request_token {
    return $self->success;
 }
    
-sub get_authorization_url {}
-sub get_access_token {
+sub get_authorization_url {
    my $self = shift;
    my %opts = @_;
-   $opts{token} = ( exists $opts{request_token} ) ? delete $opts{request_token} : $self->request_token 
-      unless exists $opts{token};
-   $opts{token_secret} = ( exists $opts{request_token_secret} ) ? delete $opts{request_token_secret} : $self->request_token_secret 
-      unless exists $opts{token_secret};
+   $opts{oauth_token} ||= $self->request_token;
+   $opts{callback}    ||= $self->callback;
+   my $url  = URI->new( $self->authorize_token_url );
+   $url->query_form( %opts );
+   return $url;
+}
+
+sub process_authorization_callback {
+   my $self = shift;
+   my $url  = (ref($_[0]) eq '') ? URI->new($_[0]) : $_[0]; # if we are handed a string build a uri object of it
+   my %opts = $url->query_form;
+   for ( grep{! m/^oauth_/} keys %opts ) {
+      delete $opts{$_};
+   }
+   return %opts;
+}
+
+has process_access_token_mapping => (
+   is => 'rw',
+   isa => 'HashRef[ArrayRef]',
+   auto_deref => 1,
+   default => sub{{ token        => [qw{oauth_token request_token}],
+                    token_secret => [qw{request_token_secret}],
+                    verifier     => [qw{oauth_verifier}],
+                 }},
+);
+
+sub process_access_token_input {
+   my $self = shift;
+   my %opts = @_;
+   my %mapp = $self->process_access_token_mapping;
+   KEY: while ( my ( $key, $map ) = each %mapp ) {
+      next KEY if exists $opts{$key}; # dont overwrite anything that was passed to us (respect overwrites)
+      for my $lookup ( @$map ) {
+         my $value = ( exists $opts{$lookup} ) ? delete $opts{$lookup}
+                   : ( $self->can($lookup)   ) ? $self->$lookup
+                   :                             undef;  
+         $opts{$key} = $value;
+         next KEY if $value; # stop looking if we found a value
+         
+      }
+   }
+   return %opts;
+}
+
+sub get_access_token {
+   my $self = shift;
+   my %opts = $self->process_access_token_input( (scalar(@_) == 1) 
+                                                ? $self->process_authorization_callback(@_) 
+                                                : @_
+                                               );
+
    $self->send_request(access_token => %opts);
    if ($self->success) {
       my $resp = Net::OAuth->response('access token')->from_post_body($self->response->content);
@@ -178,7 +235,14 @@ sub get_access_token {
    return $self->success;
 }
 
-
+sub get_protected_resource {
+   my $self = shift;
+   my %opts = (scalar(@_) == 1) ? (request_url => $_[0]) : @_ ; # allow just the requested URL to be pased
+   $opts{token} = $self->access_token;
+   $opts{token_secret} = $self->access_token_secret;
+   
+   $self->send_request(protected_resource => %opts);
+}
 
 
 
