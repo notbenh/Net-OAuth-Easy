@@ -205,15 +205,14 @@ sub process_access_token_input {
    my $self = shift;
    my %opts = @_;
    my %mapp = $self->process_access_token_mapping;
-   KEY: while ( my ( $key, $map ) = each %mapp ) {
-      next KEY if exists $opts{$key}; # dont overwrite anything that was passed to us (respect overwrites)
+   while ( my ( $key, $map ) = each %mapp ) {
+      next if exists $opts{$key}; # dont overwrite anything that was passed to us (respect overwrites)
       for my $lookup ( @$map ) {
          my $value = ( exists $opts{$lookup} ) ? delete $opts{$lookup}
                    : ( $self->can($lookup)   ) ? $self->$lookup
                    :                             undef;  
          $opts{$key} = $value;
-         next KEY if $value; # stop looking if we found a value
-         
+         next if $value; # stop looking if we found a value
       }
    }
    return %opts;
@@ -238,10 +237,10 @@ sub get_access_token {
 sub get_protected_resource {
    my $self = shift;
    my %opts = (scalar(@_) == 1) ? (request_url => $_[0]) : @_ ; # allow just the requested URL to be pased
-   $opts{token} = $self->access_token;
-   $opts{token_secret} = $self->access_token_secret;
-   
+   $opts{token} ||= $self->access_token;
+   $opts{token_secret} ||= $self->access_token_secret;
    $self->send_request(protected_resource => %opts);
+   return $self->success;
 }
 
 
