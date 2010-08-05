@@ -185,11 +185,17 @@ describe 'Net::OAuth::Easy' {
 
    it 'will complete a simple workflow of getting OAuth tokens' {
       
+      #---------------------------------------------------------------------------
+      #  REQUEST
+      #---------------------------------------------------------------------------
       ok( $oauth->get_request_token, q{able to collect a pair of request token} );
 
       ok( $oauth->has_request_token, q{recieved request token} );
       ok( $oauth->has_request_token_secret, q{recieved request token_secret} );
 
+      #---------------------------------------------------------------------------
+      #  AUTH URL
+      #---------------------------------------------------------------------------
       ok( my $auth_url = $oauth->get_authorization_url, q{able to generate an auth url} );
       like( $auth_url, qr{http://oauth-sandbox.sevengoslings.net/authorize}, q{auth url has the right base});
       like( $auth_url, qr{oauth_token}, q{auth url includes token} );
@@ -211,13 +217,15 @@ describe 'Net::OAuth::Easy' {
                              );
       $mech->click_ok('allow');
 
+      #---------------------------------------------------------------------------
+      #  ACCESS
+      #---------------------------------------------------------------------------
       ok( $oauth->get_access_token( $mech->uri ),
           q{able to collect a pair of access tokens} 
       );
       
       ok( $oauth->has_access_token, q{recieved access token} );
       ok( $oauth->has_access_token_secret, q{recieved access token_secret} );
-
 
       ok( $oauth->get_protected_resource('http://oauth-sandbox.sevengoslings.net/three_legged'),
           q{able to make a request for a procted resource},
