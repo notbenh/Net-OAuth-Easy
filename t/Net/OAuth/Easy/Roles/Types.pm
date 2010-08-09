@@ -27,6 +27,7 @@ BEGIN {
    has sig_key => (
       is => 'rw',
       isa => 'SignatureKey',
+      coerce => 1,
    );
 
    1;
@@ -90,6 +91,7 @@ describe 'Net::OAuth::Easy::Roles::Types' {
          ok( $t->sig_key('tmp_key_PKCS1'), 
              q{able to take a file name and load that} 
          );
+         eq_or_diff( $t->sig_key, 'moasdfo' );
          ok( unlink( 'tmp_key_PKCS1' ), q{clean up our tmp file} );
       }
       else {

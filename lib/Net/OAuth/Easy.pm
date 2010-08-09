@@ -62,6 +62,7 @@ has signature_method => (
 has signature_key => (
    is => 'rw',
    isa => 'SignatureKey',
+   coerce => 1,
    predicate => 'has_signature_key',
    clearer => 'clear_signature_key',
 );
