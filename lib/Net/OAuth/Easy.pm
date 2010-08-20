@@ -25,12 +25,15 @@ has protocol => (
    isa => 'OAuthProtocol',
    lazy => 1,
    default => sub{'1.0a'},
-   trigger => sub{$Net::OAuth::PROTOCOL_VERSION = (shift->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;},
+   trigger => \&set_net_oauth_protocol,
 );
+sub set_net_oauth_protocol { 
+   $Net::OAuth::PROTOCOL_VERSION = (shift->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;
+}
 
 sub BUILD {
    my $self = shift;
-   $Net::OAuth::PROTOCOL_VERSION = ($self->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;
+   $self->set_net_oauth_protocol;
 }
 
 has $_ => (
