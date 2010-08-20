@@ -92,6 +92,13 @@ has request_parameters => (
    }]},
 );
 
+has exception_handle => (
+   is => 'rw',
+   isa => 'CodeRef',
+   default => sub{sub{shift;die @_}},
+);
+
+
 sub build_request {
    my $self = shift;
    my $type = shift;
@@ -111,10 +118,10 @@ sub build_request {
 
    my $request = Net::OAuth->request($type)->new(%req);
 
-   die q{Unable to sign request} 
+   $self->exception_handle->( q{Unable to sign request} )
       unless $request->sign;
 
-   die q{Unable to verify request}
+   $self->exception_handle->( q{Unable to verify request} )
       unless $request->verify;
 
    return $request;
