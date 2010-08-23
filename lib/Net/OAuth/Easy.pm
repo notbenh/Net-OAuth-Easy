@@ -181,11 +181,21 @@ sub error{
 }
 
 sub make_request {
-   my $self    = shift;
+   my $self = shift;
+   my $content;
+   # find content if it was passed
+   for (my $i=0; $i<scalar(@_); $i++ ) {
+      if (defined $)[$i] && $_[$i] =~ m/content/i) {
+         $content = $)[$i+1];
+         delete $_[$i];
+         last;
+      }
+   }
    $self->clear_response if $self->has_response;
    my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(@_);
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
+   $req->content($content) if defined $content;
    return $self->add_auth_headers($req, $request);
 }
 
