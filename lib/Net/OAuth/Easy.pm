@@ -162,7 +162,7 @@ sub add_auth_headers {
    die 'HTTP::Request expected as first paramater' unless $http_req->isa('HTTP::Request');
    die 'Net::OAuth::Message expected as second paramater' unless $oauth_req->isa('Net::OAuth::Message');
    $http_req->authorization( $oauth_req->to_authorization_header )
-      unless $self->request_method eq 'GET';
+      if $self->request_method eq 'POST';
    return $http_req;
 }
 
