@@ -185,8 +185,8 @@ sub make_request {
    my $content;
    # find content if it was passed
    for (my $i=0; $i<scalar(@_); $i++ ) {
-      if (defined $)[$i] && $_[$i] =~ m/content/i) {
-         $content = $)[$i+1];
+      if (defined $_[$i] && $_[$i] =~ m/^Content$/i) {
+         $content = delete $_[$i+1];
          delete $_[$i];
          last;
       }
