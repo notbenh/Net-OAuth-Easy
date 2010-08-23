@@ -98,7 +98,6 @@ has exception_handle => (
    default => sub{sub{shift;die @_}},
 );
 
-
 sub build_request {
    my $self = shift;
    my $type = shift;
