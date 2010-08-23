@@ -127,6 +127,20 @@ has exception_handle => (
 sub build_request {
    my $self = shift;
    my $type = shift;
+   my $request = Net::OAuth->request($type)->new($self->gather_request_parts($type => @_));
+
+   $self->exception_handle->( q{Unable to sign request} )
+      unless $request->sign;
+
+   $self->exception_handle->( q{Unable to verify request} )
+      unless $request->verify;
+
+   return $request;
+}
+
+sub gather_request_parts {
+   my $self = shift;
+   my $type = shift;
    my %opts = @_;
 
    # use type to grab the right url
@@ -140,17 +154,10 @@ sub build_request {
    $req{extra_params} = \%opts if scalar(keys %opts); # save off anything left from @_ as extra params
 
    $req{protocol_version} = ($self->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0 ;
-
-   my $request = Net::OAuth->request($type)->new(%req);
-
-   $self->exception_handle->( q{Unable to sign request} )
-      unless $request->sign;
-
-   $self->exception_handle->( q{Unable to verify request} )
-      unless $request->verify;
-
-   return $request;
+   
+   return %req;
 }
+
 
 has response => (
    is => 'rw',
