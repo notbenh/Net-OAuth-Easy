@@ -75,21 +75,47 @@ sub nonce { md5_hex( join '', rand(2**32), time, rand(2**32) ); };
 
 has request_parameters => (
    is => 'rw',
-   isa => 'ArrayRef',
-   auto_deref => 1,
-   default => sub{[qw{ consumer_key 
-                       consumer_secret 
-                       request_url 
-                       request_method 
-                       signature_key 
-                       signature_method 
-                       timestamp 
-                       nonce 
-                       token
-                       token_secret
-                       verifier
-   }]},
-                       #callback 
+   isa => 'HashRef[ArrayRef]',
+   default => sub{{ request_token => [qw{consumer_key 
+                                         consumer_secret 
+                                         request_url 
+                                         request_method 
+                                         signature_key 
+                                         signature_method 
+                                         timestamp 
+                                         nonce 
+                                         callback 
+                                         token
+                                         token_secret
+                                         verifier
+                                        }],
+                    access_token  => [qw{consumer_key 
+                                         consumer_secret 
+                                         request_url 
+                                         request_method 
+                                         signature_key 
+                                         signature_method 
+                                         timestamp 
+                                         nonce 
+                                         token
+                                         token_secret
+                                         verifier
+                                        }],
+
+                    protected_resource => [qw{
+                                         consumer_key 
+                                         consumer_secret 
+                                         request_url 
+                                         request_method 
+                                         signature_key 
+                                         signature_method 
+                                         timestamp 
+                                         nonce 
+                                         token
+                                         token_secret
+                                         verifier
+                                        }],
+   }},
 );
 
 has exception_handle => (
@@ -109,7 +135,7 @@ sub build_request {
 
    # pull any overrides from %opts/@_ everything else is pulled from $self
    my %req  = map{ $_ => ( exists $opts{$_} ) ? delete $opts{$_} : ( $self->can($_) ) ? $self->$_ : undef;
-                 } $self->request_parameters;
+                 } @{$self->request_parameters->{ $type } || [] };
    # TODO: this is likely not what we really want in cases where you pass Content, NOS builds the URL and then plucks from that, possibly more accurate?
    $req{extra_params} = \%opts if scalar(keys %opts); # save off anything left from @_ as extra params
 
