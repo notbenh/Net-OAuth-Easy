@@ -85,11 +85,11 @@ has request_parameters => (
                        signature_method 
                        timestamp 
                        nonce 
-                       callback 
                        token
                        token_secret
                        verifier
    }]},
+                       #callback 
 );
 
 has exception_handle => (
@@ -159,8 +159,8 @@ sub make_request {
 
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
-   die 'HTTP::Request expected as first paramater' unless $http_req->isa('HTTP::Request');
-   die 'Net::OAuth::Message expected as second paramater' unless $oauth_req->isa('Net::OAuth::Message');
+   $self->exception_handle( 'HTTP::Request expected as first paramater') unless $http_req->isa('HTTP::Request');
+   $self->exception_handle( 'Net::OAuth::Message expected as second paramater') unless $oauth_req->isa('Net::OAuth::Message');
    $http_req->authorization( $oauth_req->to_authorization_header )
       if $self->request_method eq 'POST';
    return $http_req;
