@@ -154,7 +154,7 @@ sub make_request {
    my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(@_);
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
-   return $self->add_auth_headers($req, $request);
+   return ( $self->request_method eq 'GET' ) ? $req :  $self->add_auth_headers($req, $request);
 }
 
 sub add_auth_headers {
