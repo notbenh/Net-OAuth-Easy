@@ -192,7 +192,7 @@ sub make_request {
       }
    }
    $self->clear_response if $self->has_response;
-   my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(@_);
+   my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(grep { defined }@_);
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
    $req->content($content) if defined $content;
