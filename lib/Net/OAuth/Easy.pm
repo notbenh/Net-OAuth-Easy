@@ -154,14 +154,15 @@ sub make_request {
    my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(@_);
 
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
-   return ( $self->request_method eq 'GET' ) ? $req :  $self->add_auth_headers($req, $request);
+   return $self->add_auth_headers($req, $request);
 }
 
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
    die 'HTTP::Request expected as first paramater' unless $http_req->isa('HTTP::Request');
    die 'Net::OAuth::Message expected as second paramater' unless $oauth_req->isa('Net::OAuth::Message');
-   $http_req->authorization( $oauth_req->to_authorization_header );
+   $http_req->authorization( $oauth_req->to_authorization_header )
+      unless $self->request_method eq 'GET';
    return $http_req;
 }
 
