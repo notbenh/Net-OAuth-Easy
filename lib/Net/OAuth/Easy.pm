@@ -199,12 +199,19 @@ sub make_request {
    return $self->add_auth_headers($req, $request);
 }
 
+has [qw{oauth_header_realm oauth_header_separator}] => (
+   is => 'rw',
+   isa => 'Maybe[Str]',
+);
+
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
    $self->exception_handle( 'HTTP::Request expected as first paramater') unless $http_req->isa('HTTP::Request');
    $self->exception_handle( 'Net::OAuth::Message expected as second paramater') unless $oauth_req->isa('Net::OAuth::Message');
-   $http_req->authorization( $oauth_req->to_authorization_header )
-      if $self->request_method eq 'POST';
+   $http_req->authorization( $oauth_req->to_authorization_header, 
+                             (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
+                             (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
+                           ) if $http_req->method eq 'POST';
    return $http_req;
 }
 
