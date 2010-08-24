@@ -194,6 +194,7 @@ sub make_request {
    $self->clear_response if $self->has_response;
    my $request = ( ref($_[0]) && $_[0]->isa('Net::OAuth::Message') ) ? $_[0] : $self->build_request(grep { defined }@_);
 
+   #my $req = HTTP::Request->new( $request->request_method => ($request->request_method eq 'GET') ? $request->to_url : $request->request_url );
    my $req = HTTP::Request->new( $request->request_method => $request->to_url );
    $req->content($content) if defined $content;
    return $self->add_auth_headers($req, $request);
@@ -208,9 +209,10 @@ sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
    $self->exception_handle( 'HTTP::Request expected as first paramater') unless $http_req->isa('HTTP::Request');
    $self->exception_handle( 'Net::OAuth::Message expected as second paramater') unless $oauth_req->isa('Net::OAuth::Message');
-   $http_req->authorization( $oauth_req->to_authorization_header, 
-                             (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
-                             (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
+   $http_req->authorization( $oauth_req->to_authorization_header( 
+                                (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
+                                (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
+                             )
                            ) if $http_req->method eq 'POST';
    return $http_req;
 }
