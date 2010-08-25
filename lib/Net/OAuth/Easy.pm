@@ -6,9 +6,19 @@ require HTTP::Request;
 
 # ABSTRACT: A moose class that abstracts Net::OAuth for you
 
+=roles Net::OAuth::Easy::Roles::Types
+
+=cut
+
 with qw{
    Net::OAuth::Easy::Roles::Types
 };
+
+=attr ua
+
+A LWP::UserAgent object to do the message passing. 
+
+=cut
 
 has ua => (
    is => 'rw',
@@ -19,6 +29,20 @@ has ua => (
       LWP::UserAgent->new;
    },
 );
+
+=attr protocol
+
+What OAuth protocol do you wish your messages to be build in? 
+
+=over 4
+
+=item * '1.0a' B<Default>
+
+=item * '1.0'
+
+=back
+
+=cut
 
 has protocol => (
    is => 'rw',
@@ -36,12 +60,52 @@ sub BUILD {
    $self->set_net_oauth_protocol;
 }
 
+=attr consumer_key
+
+=method has_consumer_key
+
+=method clear_consumer_key
+
+=attr consumer_secret
+
+=method has_consumer_secret
+
+=method clear_consumer_secret
+
+=cut
+
 has $_ => (
    is => 'rw',
    isa => 'Str',
    predicate => qq{has_$_},
    clearer => qq{clear_$_},
 ) for qw{ consumer_key consumer_secret };
+
+=attr request_token_url
+
+=method has_request_token_url
+
+=method clear_request_token_url
+
+=attr authorize_token_url
+
+=method has_authorize_token_url
+
+=method clear_authorize_token_url
+
+=attr access_token_url
+
+=method has_access_token_url
+
+=method clear_access_token_url
+
+=attr callback
+
+=method has_callback
+
+=method clear_callback
+
+=cut
 
 has $_ => (
    is => 'rw',
@@ -50,17 +114,59 @@ has $_ => (
    clearer => qq{clear_$_},
 ) for qw{ request_token_url authorize_token_url access_token_url callback };
 
+=attr request_method
+
+Defines the method of the request.
+
+=over 4
+
+=item * 'GET' B<Default>
+
+=item * 'POST'
+
+=back 
+
+=cut
+
 has request_method => (
    is => 'rw',
    isa => 'RequestMethod',
    default => 'GET',
 );
 
+=attr signature_method
+
+Defines the method to sign the request.
+
+=over 4
+
+=item * 'HMAC-SHA1' B<Default>
+
+=item * 'RSA-SHA1'
+
+=back
+
+=cut
+
 has signature_method => (
    is => 'rw',
    isa => 'SignatureMethod',
    default => 'HMAC-SHA1',
 );
+
+=attr signature_key
+
+Where to find the signature key, only used for RSA-SHA1 type signatures.
+
+Expected to be passed a Crypt::OpenSSL::RSA object. Though if passed a 
+string, this will be assumped to be a filename and will be passed to 
+the new_private_key method of Crypt::OpenSSL::RSA.
+
+=method has_signature_key
+
+=method clear_signature_key
+
+=cut
 
 has signature_key => (
    is => 'rw',
@@ -70,8 +176,32 @@ has signature_key => (
    clearer => 'clear_signature_key',
 );
 
+=method timestamp
+
+Currently just an alias to L<time>, it is used to define the timestamp
+of the OAuth request.
+
+=cut
+
 sub timestamp { time };
+
+=method nonce
+
+Define a unique id for every OAuth request, curently this is done by 
+taking the md5_hex of two random numbers and the time. 
+
+=cut
+
 sub nonce { md5_hex( join '', rand(2**32), time, rand(2**32) ); };
+
+=attr request_parameters
+
+This is a HashRef of ArrayRefs that is used to define the required
+elements of each type of OAuth request. The type (ie request_token)
+is the key and all items in the ArrayRef value will be collected 
+from $self if not passed at the time that the request is built.
+
+=cut
 
 has request_parameters => (
    is => 'rw',
@@ -118,11 +248,36 @@ has request_parameters => (
    }},
 );
 
+=attr exception_handle
+
+Stores a coderef that is called when an exception is hit. Out of 
+the box this does not do anything more then die with a message, 
+though it can be used to leverage diffrent codepaths at the time
+of an exception. 
+
+It is used internaly as such:
+
+  $self->exception_handle->(q{unable to sign request});
+
+Thus if you need to define your own you will have $self and a note
+about why it was called. 
+
+I'm not completely happy with this so it could change but this should
+get any one needing this the most basic items currently.
+
+=cut
+
 has exception_handle => (
    is => 'rw',
    isa => 'CodeRef',
    default => sub{sub{shift;die @_}},
 );
+
+=method build_request
+
+Used to build the Net::OAuth request object based on input and L<gather_request_parts>.
+
+=cut
 
 sub build_request {
    my $self = shift;
@@ -137,6 +292,13 @@ sub build_request {
 
    return $request;
 }
+
+=method gather_request_parts
+
+Uses L<request_parameters> to merge passed items with stored values 
+to complete all items required for L<build_request>.
+
+=cut
 
 sub gather_request_parts {
    my $self = shift;
@@ -158,6 +320,15 @@ sub gather_request_parts {
    return %req;
 }
 
+=attr response
+
+Stores the response when any of the get_* methods are called.
+
+=method has_response
+
+=method clear_response
+
+=cut
 
 has response => (
    is => 'rw',
@@ -165,20 +336,61 @@ has response => (
    predicate => 'has_response',
    clearer => 'clear_response',
 );
+
+=method content
+
+Shortcut to get the content of the response, will return undef if in
+the case of no response yet stored.
+
+=cut
+
 sub content {
    my $self = shift;
    ( $self->has_response ) ? $self->response->content : undef;
 }
 
+=method success
+
+Shortcut to see if a successful response was collected, returns 0
+in the case of no response yet stored.
+
+=cut
+
 sub success {
    my $self = shift;
    return ( $self->has_response ) ? $self->response->is_success : 0;
 }
+
+=method failure
+
+Returns the inverse of L<success>.
+
+=cut
+
 sub failure { ! shift->success };
+
+=method error
+
+In the case of a non-successful response, will return a formated 
+string that includes the status_line and content to describe the
+reason for failure. Will return undef in the case of no response
+yet stored.
+
+=cut
+
 sub error{ 
    my $self = shift;
    return ($self->failure) ? join qq{\n}, map{$self->response->$_} qw{status_line content} : undef;
 }
+
+=method make_request
+
+Given a Net::OAuth request, convert it to a HTTP::Request such 
+that it can be sent via L<ua>. One other thing to note is that
+make_request also calls clear_request thus destroying any 
+previously stored request.
+
+=cut
 
 sub make_request {
    my $self = shift;
@@ -199,10 +411,31 @@ sub make_request {
    return $self->add_auth_headers($req, $request);
 }
 
+=attr oauth_header_realm
+
+If defined it is expected to be a string(URL) that will be included
+in to the Authorization headers. If not given it will be ignored.
+
+=attr oauth_header_separator
+
+A string that denotes the string that you would like to use to 
+seperate the key=value pairs in the Authuntication header.
+
+Defaults to ','.
+
+=cut
+
 has [qw{oauth_header_realm oauth_header_separator}] => (
    is => 'rw',
    isa => 'Maybe[Str]',
 );
+
+=method add_auth_headers
+
+Add the Authentication header to the HTTP request based on the OAuth 
+request if the request method is POST.
+
+=cut
 
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
@@ -216,11 +449,52 @@ sub add_auth_headers {
    return $http_req;
 }
 
+=method send_request
+
+Pass the given HTTP::Request object to L<ua> thus sending out the 
+request to the world.
+
+=cut
+
 sub send_request {
    my $self = shift;
    my $req = ( ref($_[0]) && $_[0]->isa('HTTP::Request') ) ? $_[0] : $self->make_request(@_);
    $self->response( $self->ua->request( $req ) );
 }
+
+=attr request_token
+
+Stores the request_token when it's collected via L<get_request_token>.
+
+=method has_request_token
+
+=method clear_request_token
+
+=attr request_token_secret
+
+Stores the request_token_secret when it's collected via L<get_request_token>.
+
+=method has_request_token_secret
+
+=method clear_request_token_secret
+
+=attr access_token
+
+Stores the access_token when it's collected via L<get_request_token>.
+
+=method has_access_token
+
+=method clear_access_token
+
+=attr access_token_secret
+
+Stores the access_token_secret when it's collected via L<get_request_token>.
+
+=method has_access_token_secret
+
+=method clear_access_token_secret
+
+=cut
 
 has $_ => (
    is => 'rw',
@@ -228,6 +502,12 @@ has $_ => (
    predicate => qq{has_$_},
    clearer => qq{clear_$_},
 ) for qw{request_token request_token_secret access_token access_token_secret};
+
+=method get_request_token
+
+Builds up an OAuth request to get the request_token pairs.
+
+=cut
 
 sub get_request_token {
    my $self = shift;
@@ -239,6 +519,12 @@ sub get_request_token {
    }
    return $self->success;
 }
+
+=method get_authorization_url
+
+Build out the URL that is needed to be called to collect the oauth_verifier.
+
+=cut
    
 sub get_authorization_url {
    my $self = shift;
@@ -250,6 +536,13 @@ sub get_authorization_url {
    return $url;
 }
 
+=method process_authorization_callback
+
+Unpack the return url from the OAuth provider that includes items
+like oauth_verifier. Returns a hash of unparsed items.
+
+=cut
+
 sub process_authorization_callback {
    my $self = shift;
    my $url  = (ref($_[0]) eq '') ? URI->new($_[0]) : $_[0]; # if we are handed a string build a uri object of it
@@ -260,6 +553,10 @@ sub process_authorization_callback {
    return %opts;
 }
 
+=attr process_access_token_mapping
+
+=cut
+
 has process_access_token_mapping => (
    is => 'rw',
    isa => 'HashRef[ArrayRef]',
@@ -269,6 +566,10 @@ has process_access_token_mapping => (
                     verifier     => [qw{oauth_verifier}],
                  }},
 );
+
+=method process_access_token_input
+
+=cut
 
 sub process_access_token_input {
    my $self = shift;
@@ -287,6 +588,12 @@ sub process_access_token_input {
    return %opts;
 }
 
+=method get_access_token
+
+Collect and store the access_tokens.
+
+=cut
+
 sub get_access_token {
    my $self = shift;
    my %opts = $self->process_access_token_input( (scalar(@_) == 1) 
@@ -303,6 +610,10 @@ sub get_access_token {
    return $self->success;
 }
 
+=method get_protected_resource
+
+=cut
+
 sub get_protected_resource {
    my $self = shift;
    my %opts = (scalar(@_) == 1) ? (request_url => $_[0]) : @_ ; # allow just the requested URL to be pased
@@ -311,8 +622,6 @@ sub get_protected_resource {
    $self->send_request(protected_resource => %opts);
    return $self->success;
 }
-
-
 
 
 1;

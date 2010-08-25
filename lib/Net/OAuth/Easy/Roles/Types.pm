@@ -5,6 +5,8 @@ use File::Slurp;
 use Data::Validate::URI qw(is_uri);
 require Crypt::OpenSSL::RSA;
 
+# ABSTRACT: Role to tuck away types into
+
 enum 'OAuthProtocol' => qw(1.0 1.0a);
 
 enum 'RequestMethod' => qw(GET POST);
