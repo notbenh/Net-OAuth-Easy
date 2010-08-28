@@ -437,6 +437,13 @@ request if the request method is POST.
 
 =cut
 
+has include_auth_header_for_GET => (
+   is => 'rw',
+   isa => 'Bool',
+   default => 0,
+);
+
+
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
    $self->exception_handle( 'HTTP::Request expected as first paramater') unless $http_req->isa('HTTP::Request');
@@ -445,7 +452,7 @@ sub add_auth_headers {
                                 (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
                                 (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
                              )
-                           ) if $http_req->method eq 'POST';
+                           ) if $http_req->method eq 'POST' || $self->include_auth_header_for_GET;
    return $http_req;
 }
 
