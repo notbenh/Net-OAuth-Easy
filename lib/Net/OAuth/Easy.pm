@@ -52,6 +52,7 @@ has protocol => (
    trigger => \&set_net_oauth_protocol,
 );
 sub set_net_oauth_protocol { 
+   no warnings;
    $Net::OAuth::PROTOCOL_VERSION = (shift->protocol eq '1.0a') ? &Net::OAuth::PROTOCOL_VERSION_1_0A : &Net::OAuth::PROTOCOL_VERSION_1_0;
 }
 
@@ -212,6 +213,7 @@ has request_parameters => (
                                          request_method 
                                          signature_key 
                                          signature_method 
+                                         protocol_version
                                          timestamp 
                                          nonce 
                                          callback 
@@ -223,6 +225,7 @@ has request_parameters => (
                                          consumer_secret 
                                          request_url 
                                          request_method 
+                                         protocol_version
                                          signature_key 
                                          signature_method 
                                          timestamp 
@@ -239,12 +242,13 @@ has request_parameters => (
                                          request_method 
                                          signature_key 
                                          signature_method 
+                                         protocol_version
                                          timestamp 
                                          nonce 
                                          token
                                          token_secret
-                                         verifier
                                         }],
+                                         #verifier
    }},
 );
 
@@ -443,15 +447,20 @@ has include_auth_header_for_GET => (
    default => 0,
 );
 
+sub build_auth_header {
+   my ($self,$oauth_req) = @_;
+   $oauth_req->to_authorization_header( 
+                                (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
+                                (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
+   );
+};
+
 
 sub add_auth_headers {
    my ($self, $http_req, $oauth_req) = @_;
    $self->exception_handle( 'HTTP::Request expected as first paramater') unless $http_req->isa('HTTP::Request');
    $self->exception_handle( 'Net::OAuth::Message expected as second paramater') unless $oauth_req->isa('Net::OAuth::Message');
-   $http_req->authorization( $oauth_req->to_authorization_header( 
-                                (defined $self->oauth_header_realm) ? $self->oauth_header_realm : undef ,
-                                (defined $self->oauth_header_separator) ? $self->oauth_header_separator : undef ,
-                             )
+   $http_req->authorization( $self->build_auth_header($oauth_req) 
                            ) if $http_req->method eq 'POST' || $self->include_auth_header_for_GET;
    return $http_req;
 }
