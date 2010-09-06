@@ -161,7 +161,8 @@ Where to find the signature key, only used for RSA-SHA1 type signatures.
 
 Expected to be passed a Crypt::OpenSSL::RSA object. Though if passed a 
 string, this will be assumped to be a filename and will be passed to 
-the new_private_key method of Crypt::OpenSSL::RSA.
+the new_private_key method of Crypt::OpenSSL::RSA. The object that 
+results will be stored.
 
 =method has_signature_key
 
