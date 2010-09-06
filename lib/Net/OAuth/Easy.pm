@@ -9,7 +9,14 @@ require HTTP::Request;
 =head1 SYNOPSIS
 
   use Net::OAuth::Easy;
-  my $oauth = Net::OAuth::Easy->new;
+  my $oauth = Net::OAuth::Easy->new( 
+      consumer_key        => $key,
+      consumer_secret     => $secret,
+      request_token_url   => q{http://someplace.com/request_token},
+      authorize_token_url => q{http://someplace.com/authorize},
+      access_token_url    => q{http://someplace.com/access_token},
+      callback            => q{http://here.com/user},
+  );
   $oauth->get_request_token;
   # save off request token secret somewhere, you need it later
   $some_session_idea->request_token_secret($oauth->requset_token_secret);
