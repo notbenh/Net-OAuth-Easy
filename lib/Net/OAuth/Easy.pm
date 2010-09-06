@@ -6,6 +6,40 @@ require HTTP::Request;
 
 # ABSTRACT: A moose class that abstracts Net::OAuth for you
 
+=head1 SYNOPSIS
+
+  use Net::OAuth::Easy;
+  my $oauth = Net::OAuth::Easy->new;
+  $oauth->get_request_token;
+  # save off request token secret somewhere, you need it later
+  $some_session_idea->request_token_secret($oauth->requset_token_secret);
+
+  my $auth_url   = $oauth->get_authorization_url;
+  # redirect user to $auth_url
+
+  ...
+
+  #reload the token secret
+  $oauth->request_token_secret( $some_session_idea->request_token_secret );
+  $oauth->get_access_token( $q->url );
+  #safe off the access tokens now
+  $some_storage_idea->access_token($oauth->access_token);
+  $some_storage_idea->access_token_secret($oauth->access_token_secret);
+
+  ...
+
+  $oauth->access_token( $some_storage_idea->access_token );
+  $oauth->access_token_secret( $some_storage_idea->access_token_secret );
+  $oauth->get_protected_resource( $restricted_url )
+  
+
+get_access_token
+
+
+=head1 DESCRIPTION
+
+=head1 OVERVIEW
+
 =roles Net::OAuth::Easy::Roles::Types
 
 =cut
